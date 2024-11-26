@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tape Transfer Learning Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+            background-image:
+                linear-gradient(#20B2AA 1px, transparent 1px),
+                linear-gradient(90deg, #20B2AA 1px, transparent 1px),
+                linear-gradient(#FFB6C1 1px, transparent 1px),
+                linear-gradient(90deg, #FFB6C1 1px, transparent 1px),
+                linear-gradient(rgba(32, 178, 170, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(32, 178, 170, 0.3) 1px, transparent 1px);
+            background-size: 
+                50px 50px,
+                50px 50px,
+                10px 10px,
+                10px 10px,
+                25px 25px,
+                25px 25px;
+            background-position:
+                -1px -1px,
+                -1px -1px,
+                -1px -1px,
+                -1px -1px,
+                -1px -1px,
+                -1px -1px;
+        }
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+        }
+        .workspace {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .materials, .sequence-area {
+            flex: 1;
+            min-width: 300px;
+            padding: 15px;
+            background: rgba(245, 245, 245, 0.9);
+            border-radius: 8px;
+            min-height: 400px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .material {
+            background: white;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .material:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .material.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .sequence-slot {
+            background: rgba(227, 242, 253, 0.7);
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px dashed #90caf9;
+            border-radius: 8px;
+            min-height: 60px;
+            transition: background-color 0.3s;
+        }
+        .sequence-slot:hover {
+            background: rgba(227, 242, 253, 0.9);
+        }
+        .item-image {
+            width: 50px;
+            height: 50px;
+            background: rgba(221, 221, 221, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border-radius: 8px;
+            backdrop-filter: blur(2px);
+        }
+        .item-text {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+            color: #333;
+            letter-spacing: -0.5px;
+        }
+        .check-button {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 30px;
+            background: #20B2AA;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 15px rgba(32, 178, 170, 0.3);
+        }
+        .check-button:hover {
+            background: #1a9690;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(32, 178, 170, 0.4);
+        }
+        .check-button:active {
+            transform: translateY(0);
+        }
+        .feedback {
+            text-align: center;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+        .correct { 
+            background: rgba(200, 230, 201, 0.9);
+            color: #2e7d32;
+        }
+        .incorrect { 
+            background: rgba(255, 205, 210, 0.9);
+            color: #c62828;
+        }
+        h1 {
+            color: #20B2AA;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: -1px;
+        }
+        p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        @media (max-width: 700px) {
+            .workspace {
+                flex-direction: column;
+            }
+            .materials, .sequence-area {
+                min-width: auto;
+            }
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tape Transfer Steps Game</h1>
+        <p>Drag the items in the correct order to complete the tape transfer process.</p>
+        
+        <div class="workspace">
+            <div class="materials" id="materials">
+                <div class="material" draggable="true" data-step="5">
+                    <div class="item-image">📄</div>
+                    <div class="item-text">Dry the transfer</div>
+                </div>
+                <div class="material" draggable="true" data-step="2">
+                    <div class="item-image">✂️</div>
+                    <div class="item-text">Cut the image to size</div>
+                </div>
+                <div class="material" draggable="true" data-step="1">
+                    <div class="item-image">🖨️</div>
+                    <div class="item-text">Print image with laser printer</div>
+                </div>
+                <div class="material" draggable="true" data-step="4">
+                    <div class="item-image">💧</div>
+                    <div class="item-text">Soak in water and rub paper off</div>
+                </div>
+                <div class="material" draggable="true" data-step="3">
+                    <div class="item-image">📍</div>
+                    <div class="item-text">Apply clear tape to image</div>
+                </div>
+            </div>
+            
+            <div class="sequence-area" id="sequence-area">
+                <div class="sequence-slot" data-position="1"></div>
+                <div class="sequence-slot" data-position="2"></div>
+                <div class="sequence-slot" data-position="3"></div>
+                <div class="sequence-slot" data-position="4"></div>
+                <div class="sequence-slot" data-position="5"></div>
+            </div>
+        </div>
+        
+        <button class="check-button" onclick="checkSequence()">Check Order</button>
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <script>
+        let dragged = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const materials = document.querySelectorAll('.material');
+            const slots = document.querySelectorAll('.sequence-slot');
+
+            materials.forEach(material => {
+                material.addEventListener('dragstart', (e) => {
+                    dragged = material;
+                    material.classList.add('dragging');
+                });
+
+                material.addEventListener('dragend', () => {
+                    material.classList.remove('dragging');
+                });
+            });
+
+            slots.forEach(slot => {
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (dragged) {
+                        if (slot.children.length > 0) {
+                            const existingItem = slot.children[0];
+                            document.getElementById('materials').appendChild(existingItem);
+                        }
+                        slot.appendChild(dragged);
+                    }
+                });
+            });
+        });
+
+        function checkSequence() {
+            const slots = document.querySelectorAll('.sequence-slot');
+            let correct = true;
+            const feedback = document.getElementById('feedback');
+
+            slots.forEach(slot => {
+                if (slot.children.length > 0) {
+                    const item = slot.children[0];
+                    const itemStep = parseInt(item.dataset.step);
+                    const slotPosition = parseInt(slot.dataset.position);
+                    
+                    if (itemStep !== slotPosition) {
+                        correct = false;
+                    }
+                } else {
+                    correct = false;
+                }
+            });
+
+            if (correct) {
+                feedback.textContent = "Perfect! You've arranged the steps in the correct order!";
+                feedback.className = 'feedback correct';
+            } else {
+                feedback.textContent = "Not quite right. Try rearranging the steps.";
+                feedback.className = 'feedback incorrect';
+            }
+        }
+    </script>
+</body>
+</html>
